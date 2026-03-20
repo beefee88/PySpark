@@ -2,24 +2,35 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, to_timestamp, to_date, date_format
 
 # Initialize Spark
-spark = SparkSession.builder.appName("Extract Date ID from String Datetime").getOrCreate()
+spark = SparkSession.builder.appName("Add Date ID to usersales").getOrCreate()
 
-# Paths (Windows-safe)
-input_path = r"userdata.parquet"
-output_path = r"output.csv"
+# Paths
+input_path = r"usersales.csv"
+output_path = r"usersales_with_dateid.csv"
 
-# Read Parquet
-df = spark.read.parquet(input_path)
+# Read CSV
+df = spark.read.option("header", "true").option("inferSchema", "true").csv(input_path)
 
-# Parse string > timestamp -> date -> yyyymmdd
-reg_dttm_tmstp = to_timestamp(col("registration_dttm"), "yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
-reg_dttm_dt =  to_date(reg_dttm_tmstp, "yyyy-MM-dd")  # Get 'yyyy-MM-dd' part
-reg_dttm_dt_int = date_format(reg_dttm_dt, "yyyyMMdd").cast("int")
-df_with_date = df.withColumn("date_id", reg_dttm_dt_int)
+print("Sample before:")
+df.select("datetime").show(5, truncate=False)
 
-# Write output Parquet (all original columns + date_id)
-#df_with_date.coalesce(1).write.mode("overwrite").parquet(output_path)
-df_with_date.coalesce(1).write.mode("overwrite").option("header", "true").csv(output_path)
+# Convert "yyyy-MM-dd HH:mm:ss" → date → yyyymmdd int
+df_with_dateid = df.withColumn(
+    "date_id",
+    date_format(
+        to_date(to_timestamp(col("datetime"))),  # Auto-parses standard format
+        "yyyyMMdd"
+    ).cast("int")
+)
 
+print("Sample with date_id:")
+df_with_dateid.select("datetime", "date_id").show(10, truncate=False)
+
+# Write updated CSV
+df_with_dateid.coalesce(1).write \
+    .mode("overwrite") \
+    .option("header", "true") \
+    .csv(output_path)
+
+print(f"Done! Added date_id to {df_with_dateid.count()} rows")
 spark.stop()
-print("Done! Added Column date_id.")
