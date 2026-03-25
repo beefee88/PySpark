@@ -5,6 +5,7 @@ This project demonstrates a simple PySpark ETL pipeline using sample datasets.
 
 - `userdata.parquet`
 - `products-1000.csv`
+- `pcategory.csv`
 
 ### Why this project
 This repository is a hands-on example for showcasing end-to-end PySpark data engineering:
@@ -22,6 +23,9 @@ Run `gen_usersales.py` to combine the two source datasets and create `usersales.
 
 ## Step 2: Add a date_id column
 Add a new integer-based date ID field to `usersales` for easier date-based grouping.
+
+## Step 2.5: Extract product categories
+Run `extract_pcat.py` to extract and normalize unique product categories from `products-1000.csv`, creating `pcategory.csv`. This file serves as a lookup table for product category mappings in subsequent joins.
 
 ## Step 3: Productionize the pipeline (cleanup + join)
 Convert and clean raw sales data:
